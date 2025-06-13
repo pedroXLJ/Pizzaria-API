@@ -1,8 +1,9 @@
 package com.senac.pizzademo.model;
 
-import java.util.Set;
+import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
@@ -12,25 +13,17 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
 @Entity
-
-
 public class Pizza {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String Sabor;
+    private String sabor;
 
-    @OneToMany(mappedBy = "pizza", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @JsonManagedReference
-    private Set<Ingredientes> ingredientes;
-
-    @OneToMany(mappedBy = "pizza" ,cascade = CascadeType.ALL, orphanRemoval = true,fetch = FetchType.LAZY)
-    @JsonManagedReference
-    private Set<Cardapio> cardapio;
-    
-    
+    @OneToMany(mappedBy = "pizza", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Ingrediente> ingredientes;
 
     public Long getId() {
         return this.id;
@@ -41,40 +34,29 @@ public class Pizza {
     }
 
     public String getSabor() {
-        return this.Sabor;
+        return this.sabor;
     }
 
-    public void setSabor(String Sabor) {
-        this.Sabor = Sabor;
+    public void setSabor(String sabor) {
+        this.sabor = sabor;
     }
 
-    public Set<Ingredientes> getIngredientes() {
+    public List<Ingrediente> getIngredientes() {
         return this.ingredientes;
     }
 
-    public void setIngredientes(Set<Ingredientes> ingredientes) {
+    public void setIngredientes(List<Ingrediente> ingredientes) {
         this.ingredientes = ingredientes;
     }
 
-    public Set<Cardapio> getCardapio() {
-        return this.cardapio;
-    }
-
-    public void setCardapio(Set<Cardapio> cardapio) {
-        this.cardapio = cardapio;
-    }
-
-    public Pizza(String Sabor, Set<Ingredientes> ingredientes, Set<Cardapio> cardapio) {
-        this.Sabor = Sabor;
+    public Pizza(String sabor, List<Ingrediente> ingredientes) {
+        this.sabor = sabor;
         this.ingredientes = ingredientes;
-        this.cardapio = cardapio;
     }
 
-    public Pizza(){
-        
+    public Pizza() {
+
     }
-
-
 
 }
 

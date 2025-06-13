@@ -16,13 +16,12 @@ import jakarta.persistence.ManyToOne;
 @Entity
 
 
-public class Ingredientes {
+public class Ingrediente {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String Ingrediente;
-    private String Quantidade;
+    private String nome;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "pizza_id")
@@ -33,20 +32,12 @@ public class Ingredientes {
         return this.id;
     }
 
-    public String getIngrediente() {
-        return this.Ingrediente;
+    public String getNome() {
+        return this.nome;
     }
 
-    public void setIngrediente(String Ingrediente) {
-        this.Ingrediente = Ingrediente;
-    }
-
-    public String getQuantidade() {
-        return this.Quantidade;
-    }
-
-    public void setQuantidade(String Quantidade) {
-        this.Quantidade = Quantidade;
+    public void setNome(String nome) {
+        this.nome = nome;
     }
 
     public Pizza getPizza() {
@@ -58,13 +49,12 @@ public class Ingredientes {
     }
 
 
-    public Ingredientes(String Ingrediente, String Quantidade, Pizza pizza) {
-        this.Ingrediente = Ingrediente;
-        this.Quantidade = Quantidade;
+    public Ingrediente(String nome, Pizza pizza) {
+        this.nome = nome;
         this.pizza = pizza;
     }
     
-    public Ingredientes() {
+    public Ingrediente() {
     }
 
 }

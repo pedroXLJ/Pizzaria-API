@@ -1,16 +1,20 @@
 package com.senac.pizzademo.model;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 
 
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
 @Entity
 
 public class Cardapio {
@@ -21,10 +25,8 @@ public class Cardapio {
     private Float valor;
     private String tamanho;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "pizza_id")
-    @JsonBackReference
-    private Pizza pizza;
+    @ManyToMany(fetch = FetchType.LAZY)
+    private List<Pizza> pizzas;
 
     public Long getId() {
         return this.id;
@@ -46,19 +48,19 @@ public class Cardapio {
         this.tamanho = tamanho;
     }
 
-    public Pizza getPizza() {
-        return this.pizza;
+    public List<Pizza> getPizzas() {
+        return this.pizzas;
     }
 
-    public void setPizza(Pizza pizza) {
-        this.pizza = pizza;
+    public void setPizzas(List<Pizza> pizzas) {
+        this.pizzas = pizzas;
     }
 
 
-    public Cardapio(Float valor, String tamanho, Pizza pizza) {        
+    public Cardapio(Float valor, String tamanho, List<Pizza> pizzas) {        
         this.valor = valor;
         this.tamanho = tamanho;
-        this.pizza = pizza;
+        this.pizzas = pizzas;
     }
 
     public Cardapio(){
