@@ -45,6 +45,11 @@ public class PizzaController {
         return pizzaRepository.findById(id)
             .map(pizza -> {
                 pizza.setSabor(pizzaDetails.getSabor());
+                // Remove ingredientes antigos
+                if (pizza.getIngredientes() != null) {
+                    pizza.getIngredientes().clear();
+                }
+                // Adiciona os novos ingredientes, setando a referência para a pizza
                 if (pizzaDetails.getIngredientes() != null) {
                     pizzaDetails.getIngredientes().forEach(ing -> ing.setPizza(pizza));
                     pizza.setIngredientes(pizzaDetails.getIngredientes());
