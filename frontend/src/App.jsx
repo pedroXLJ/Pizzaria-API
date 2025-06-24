@@ -248,6 +248,33 @@ function App() {
   };
   const closeCustomModal = () => setShowModal(false);
 
+  // Cadastro Cliente
+  const [clienteNome, setClienteNome] = useState('');
+  const [clienteEmail, setClienteEmail] = useState('');
+  const [clienteTelefone, setClienteTelefone] = useState('');
+  const [clienteError, setClienteError] = useState('');
+  const [clienteSuccess, setClienteSuccess] = useState('');
+
+  const handleClienteRegister = async (e) => {
+    e.preventDefault();
+    setClienteError('');
+    setClienteSuccess('');
+    try {
+      // Ajuste a URL conforme o endpoint do backend para clientes
+      await axios.post(import.meta.env.VITE_API_URL + '/clientes', {
+        nome: clienteNome,
+        email: clienteEmail,
+        telefone: clienteTelefone
+      });
+      setClienteSuccess('Cliente cadastrado com sucesso!');
+      setClienteNome('');
+      setClienteEmail('');
+      setClienteTelefone('');
+    } catch (err) {
+      setClienteError('Erro ao cadastrar cliente');
+    }
+  };
+
   return (
     <div className="main-container">
       {/* Header */}
@@ -335,6 +362,9 @@ function App() {
           </div>
         </div>
 
+        {/* Formulário de Cadastro de Cliente */}
+        
+
         {/* Pizza List Card */}
         <div>
           <h2 style={{fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem'}}>Pizzas Cadastradas</h2>
@@ -420,34 +450,63 @@ function App() {
                 </div>
               </form>
             ) : (
-              <form onSubmit={handleRegister}>
-                {/* Feedback cadastro usuário */}
-                {(registerError || registerSuccess) && (
-                  <div style={{ marginBottom: 8 }}>
-                    {registerError && <div className="alert alert-danger" style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: 6, padding: 8, marginBottom: 4 }}>{registerError}</div>}
-                    {registerSuccess && <div className="alert alert-success" style={{ background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', borderRadius: 6, padding: 8 }}>{registerSuccess}</div>}
-                  </div>
-                )}
-                <div className="form-group">
-                  <label className="label">Usuário</label>
-                  <input type="text" className="input" value={registerUser} onChange={e => setRegisterUser(e.target.value)} required />
+              <div className="card">
+                <div className="card-header">
+                  <h2 className="card-title">👤 Cadastrar Cliente</h2>
+                  <p className="card-description">Preencha os dados para cadastrar um novo cliente</p>
                 </div>
-                <div className="form-group">
-                  <label className="label">Senha</label>
-                  <input type="password" className="input" value={registerPass} onChange={e => setRegisterPass(e.target.value)} required />
+                <div className="card-content">
+                  <form onSubmit={handleClienteRegister}>
+                    {(clienteError || clienteSuccess) && (
+                <div style={{ marginBottom: 8 }}>
+                  {clienteError && <div className="alert alert-danger" style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: 6, padding: 8, marginBottom: 4 }}>{clienteError}</div>}
+                  {clienteSuccess && <div className="alert alert-success" style={{ background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', borderRadius: 6, padding: 8 }}>{clienteSuccess}</div>}
                 </div>
-                <div className="form-actions" style={{flexDirection: 'column'}}>
-                  <button type="submit" className="btn btn-primary">Criar Conta</button>
-                  <button type="button" className="btn btn-outline" onClick={() => setModalType('login')}>Já tenho conta</button>
-                </div>
-              </form>
-            )}
-            <button className="modal-close" onClick={() => setShowModal(false)}>&times;</button>
+              )}
+              <div className="form-group">
+                <label className="label">Nome *</label>
+                <input
+                  type="text"
+                  className="input"
+                  value={clienteNome}
+                  onChange={e => setClienteNome(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="label">Email *</label>
+                <input
+                  type="email"
+                  className="input"
+                  value={clienteEmail}
+                  onChange={e => setClienteEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="label">Telefone *</label>
+                <input
+                  type="tel"
+                  className="input"
+                  value={clienteTelefone}
+                  onChange={e => setClienteTelefone(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="form-actions">
+                <button type="submit" className="btn btn-primary">Cadastrar Cliente</button>
+              </div>
+            </form>
           </div>
         </div>
+
       )}
+      <button className="modal-close" onClick={() => setShowModal(false)}>&times;</button>
     </div>
-  );
+  </div>
+)}
+</div>
+);
 }
 
 export default App;
