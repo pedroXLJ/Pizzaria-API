@@ -1,7 +1,12 @@
 import './App.css';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import pizzaImg from './assets/react.svg'; // Placeholder
+import Header from './components/Header';
+import PizzaForm from './components/PizzaForm';
+import PizzaList from './components/PizzaList';
+import Carrinho from './components/Carrinho';
+import ClienteForm from './components/ClienteForm';
+import AuthModal from './components/AuthModal';
 
 const API_URL = import.meta.env.VITE_API_URL + '/pizzas';
 const AUTH_URL = import.meta.env.VITE_API_URL.replace(/\/pizzas$/, '') + '/auth';
@@ -275,31 +280,44 @@ function App() {
     }
   };
 
+  // Carrinho de compras
+  const [carrinho, setCarrinho] = useState([]);
+
+  // Adiciona pizza ao carrinho
+  const adicionarAoCarrinho = (pizza) => {
+    setCarrinho(prev => {
+      const existe = prev.find(item => item.id === pizza.id);
+      if (existe) {
+        return prev.map(item =>
+          item.id === pizza.id ? { ...item, quantidade: item.quantidade + 1 } : item
+        );
+      } else {
+        // Supondo que pizza tenha um campo preco, se não tiver, defina um valor fixo
+        return [...prev, { ...pizza, quantidade: 1, preco: pizza.preco || 50 }];
+      }
+    });
+  };
+
+  // Remove pizza do carrinho
+  const removerDoCarrinho = (pizzaId) => {
+    setCarrinho(prev => prev.filter(item => item.id !== pizzaId));
+  };
+
+  // Altera quantidade de uma pizza no carrinho
+  const alterarQuantidade = (pizzaId, novaQtd) => {
+    if (novaQtd < 1) return;
+    setCarrinho(prev => prev.map(item =>
+      item.id === pizzaId ? { ...item, quantidade: novaQtd } : item
+    ));
+  };
+
+  // Calcula subtotal e total
+  const calcularSubtotal = (item) => item.preco * item.quantidade;
+  const totalGeral = carrinho.reduce((acc, item) => acc + calcularSubtotal(item), 0);
+
   return (
     <div className="main-container">
-      {/* Header */}
-      <header className="header">
-        <div className="logo">
-          <span className="logo-icon">🍕</span>
-          <h1>Gerenciamento de Pizzas</h1>
-        </div>
-        <div className="user-section">
-          {user && (
-            <div className="user-info">Olá, {user.name}!</div>
-          )}
-          {!user && (
-            <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-              👤 Login
-            </button>
-          )}
-          {user && (
-            <button className="btn btn-outline" onClick={handleLogout}>
-              Sair
-            </button>
-          )}
-        </div>
-      </header>
-
+      <Header user={user} handleLogout={handleLogout} setShowModal={setShowModal} />
       {/* Main Grid */}
       <div className="main-grid">
         {/* Pizza Form Card */}
@@ -314,199 +332,75 @@ function App() {
           </div>
           <div className="card-content">
             {user ? (
-              <form onSubmit={handleSubmit}>
-                {/* Feedback do CRUD de pizza */}
-                {(error || success) && (
-                  <div style={{ marginBottom: 8 }}>
-                    {error && <div className="alert alert-danger" style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: 6, padding: 8, marginBottom: 4 }}>{error}</div>}
-                    {success && <div className="alert alert-success" style={{ background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', borderRadius: 6, padding: 8 }}>{success}</div>}
-                  </div>
-                )}
-                <div className="form-group">
-                  <label className="label">Nome da Pizza *</label>
-                  <input
-                    type="text"
-                    className="input"
-                    name="sabor"
-                    value={form.sabor}
-                    onChange={handleChange}
-                    placeholder="Ex: Margherita"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="label">Ingredientes *</label>
-                  <textarea
-                    className="textarea"
-                    name="ingredientes"
-                    value={form.ingredientes}
-                    onChange={handleChange}
-                    placeholder="Ex: Molho de tomate, mussarela, manjericão"
-                    required
-                  />
-                </div>
-                <div className="form-actions">
-                  <button type="submit" className="btn btn-primary">
-                    {editMode ? 'Atualizar Pizza' : 'Cadastrar Pizza'}
-                  </button>
-                  {editMode && (
-                    <button type="button" className="btn btn-outline" onClick={closePizzaModal}>
-                      Cancelar
-                    </button>
-                  )}
-                </div>
-              </form>
+              <PizzaForm
+                form={form}
+                editMode={editMode}
+                error={error}
+                success={success}
+                handleChange={handleChange}
+                handleSubmit={handleSubmit}
+                closePizzaModal={closePizzaModal}
+              />
             ) : (
               <div className="empty-state">Faça login para cadastrar ou editar pizzas.</div>
             )}
           </div>
         </div>
-
         {/* Formulário de Cadastro de Cliente */}
-        
-
+        <ClienteForm
+          clienteNome={clienteNome}
+          clienteEmail={clienteEmail}
+          clienteTelefone={clienteTelefone}
+          clienteError={clienteError}
+          clienteSuccess={clienteSuccess}
+          setClienteNome={setClienteNome}
+          setClienteEmail={setClienteEmail}
+          setClienteTelefone={setClienteTelefone}
+          handleClienteRegister={handleClienteRegister}
+        />
         {/* Pizza List Card */}
-        <div>
-          <h2 style={{fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem'}}>Pizzas Cadastradas</h2>
-          <div className="pizza-list">
-            {pizzas.length === 0 && !loading && (
-              <div className="card empty-state">Nenhuma pizza cadastrada ainda</div>
-            )}
-            {pizzas.map(pizza => {
-              // Ingredientes pode vir como array de objetos, array de string, string ou null
-              let ingredientesStr = '';
-              if (Array.isArray(pizza.ingredientes)) {
-                // Se for array de objetos, mas está vazio, mostra 'Não informado'
-                if (pizza.ingredientes.length === 0) {
-                  ingredientesStr = 'Não informado';
-                } else if (typeof pizza.ingredientes[0] === 'object' && pizza.ingredientes[0] !== null && 'nome' in pizza.ingredientes[0]) {
-                  ingredientesStr = pizza.ingredientes.map(i => i.nome).filter(Boolean).join(', ');
-                } else {
-                  ingredientesStr = pizza.ingredientes.filter(Boolean).join(', ');
-                }
-              } else if (typeof pizza.ingredientes === 'string') {
-                ingredientesStr = pizza.ingredientes;
-              } else {
-                ingredientesStr = 'Não informado';
-              }
-              return (
-                <div className={`card pizza-card${editMode && form.id === pizza.id ? ' editing' : ''}`} key={pizza.id}>
-                  <div className="card-content">
-                    <div className="pizza-header">
-                      <div className="pizza-info">
-                        <h3>{pizza.sabor}</h3>
-                        <span className="badge">{ingredientesStr}</span>
-                      </div>
-                      {user && (
-                        <div className="pizza-actions">
-                          <button className="btn btn-sm btn-outline" onClick={() => openPizzaModal(pizza)}>
-                            ✏️
-                          </button>
-                          <button className="btn btn-sm btn-outline" onClick={() => handleDelete(pizza.id)} disabled={deletingId === pizza.id}>
-                            🗑️
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                    <div className="pizza-details">
-                      <div className="detail-group">
-                        <span className="detail-label">Ingredientes:</span>
-                        <span className="detail-text">{ingredientesStr}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <PizzaList
+          pizzas={pizzas}
+          loading={loading}
+          editMode={editMode}
+          form={form}
+          user={user}
+          openPizzaModal={openPizzaModal}
+          handleDelete={handleDelete}
+          adicionarAoCarrinho={adicionarAoCarrinho}
+          deletingId={deletingId}
+        />
+        {/* Carrinho de Compras */}
+        <Carrinho
+          carrinho={carrinho}
+          alterarQuantidade={alterarQuantidade}
+          removerDoCarrinho={removerDoCarrinho}
+          calcularSubtotal={calcularSubtotal}
+          totalGeral={totalGeral}
+        />
       </div>
-
       {/* Custom Modal (Login/Register) */}
-      {showModal && (
-        <div className="modal-overlay active">
-          <div className="modal">
-            <div className="modal-header">
-              <h3 className="modal-title">{modalType === 'login' ? 'Login' : 'Criar Conta'}</h3>
-              <p className="modal-description">
-                {modalType === 'login' ? 'Entre com suas credenciais para acessar o sistema' : 'Preencha os dados para criar sua conta'}
-              </p>
-            </div>
-            {modalType === 'login' ? (
-              <form onSubmit={handleLogin}>
-                {/* Feedback login */}
-                {loginError && <div className="alert alert-danger" style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: 6, padding: 8, marginBottom: 8 }}>{loginError}</div>}
-                <div className="form-group">
-                  <label className="label">Usuário</label>
-                  <input type="text" className="input" value={loginUser} onChange={e => setLoginUser(e.target.value)} required />
-                </div>
-                <div className="form-group">
-                  <label className="label">Senha</label>
-                  <input type="password" className="input" value={loginPass} onChange={e => setLoginPass(e.target.value)} required />
-                </div>
-                <div className="form-actions" style={{flexDirection: 'column'}}>
-                  <button type="submit" className="btn btn-primary">Entrar</button>
-                  <button type="button" className="btn btn-outline" onClick={() => setModalType('register')}>Criar conta</button>
-                </div>
-              </form>
-            ) : (
-              <div className="card">
-                <div className="card-header">
-                  <h2 className="card-title">👤 Cadastrar Cliente</h2>
-                  <p className="card-description">Preencha os dados para cadastrar um novo cliente</p>
-                </div>
-                <div className="card-content">
-                  <form onSubmit={handleClienteRegister}>
-                    {(clienteError || clienteSuccess) && (
-                <div style={{ marginBottom: 8 }}>
-                  {clienteError && <div className="alert alert-danger" style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: 6, padding: 8, marginBottom: 4 }}>{clienteError}</div>}
-                  {clienteSuccess && <div className="alert alert-success" style={{ background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', borderRadius: 6, padding: 8 }}>{clienteSuccess}</div>}
-                </div>
-              )}
-              <div className="form-group">
-                <label className="label">Nome *</label>
-                <input
-                  type="text"
-                  className="input"
-                  value={clienteNome}
-                  onChange={e => setClienteNome(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label className="label">Email *</label>
-                <input
-                  type="email"
-                  className="input"
-                  value={clienteEmail}
-                  onChange={e => setClienteEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label className="label">Telefone *</label>
-                <input
-                  type="tel"
-                  className="input"
-                  value={clienteTelefone}
-                  onChange={e => setClienteTelefone(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="form-actions">
-                <button type="submit" className="btn btn-primary">Cadastrar Cliente</button>
-              </div>
-            </form>
-          </div>
-        </div>
-
-      )}
-      <button className="modal-close" onClick={() => setShowModal(false)}>&times;</button>
+      <AuthModal
+        showModal={showModal}
+        modalType={modalType}
+        setModalType={setModalType}
+        handleLogin={handleLogin}
+        handleRegister={handleRegister}
+        loginUser={loginUser}
+        setLoginUser={setLoginUser}
+        loginPass={loginPass}
+        setLoginPass={setLoginPass}
+        loginError={loginError}
+        registerUser={registerUser}
+        setRegisterUser={setRegisterUser}
+        registerPass={registerPass}
+        setRegisterPass={setRegisterPass}
+        registerError={registerError}
+        registerSuccess={registerSuccess}
+        setShowModal={setShowModal}
+      />
     </div>
-  </div>
-)}
-</div>
-);
+  );
 }
 
 export default App;
