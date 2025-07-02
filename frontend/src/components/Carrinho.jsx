@@ -1,6 +1,6 @@
 import React from 'react';
 
-function Carrinho({ carrinho, alterarQuantidade, removerDoCarrinho, calcularSubtotal, totalGeral }) {
+function Carrinho({ carrinho = [], alterarQuantidade, removerDoCarrinho, calcularSubtotal, totalGeral }) {
   return (
     <div className="card" style={{minWidth: 320, maxWidth: 400}}>
       <div className="card-header">

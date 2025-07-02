@@ -20,6 +20,9 @@ public class PedidoController {
 
     @PostMapping
     public ResponseEntity<PedidoDTO> criarPedido(@RequestParam Long clienteId) {
+        if (clienteId == null) {
+            return ResponseEntity.badRequest().body(null);
+        }
         Pedido pedido = pedidoService.criarPedido(clienteId);
         PedidoDTO dto = PedidoDTO.fromEntity(pedido);
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);

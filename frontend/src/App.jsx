@@ -20,6 +20,8 @@ function App() {
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState({ id: null, sabor: '', ingredientes: '' });
   const [deletingId, setDeletingId] = useState(null);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [cartItems, setCartItems] = useState([]);
 
   // Token
   const [token, setToken] = useState(() => localStorage.getItem('token') || '');
@@ -126,8 +128,13 @@ function App() {
   };
 
   // Navegação simples entre páginas (apenas UI)
-  const [activePage, setActivePage] = useState('pizza');
+  const [activePage, setActivePage] = useState('home');
   const handleNav = (page) => {
+    setActivePage(page);
+  };
+
+  // Handler para navegação do menu
+  const handleMenuNav = (page) => {
     setActivePage(page);
   };
 
@@ -136,19 +143,21 @@ function App() {
   const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState('');
   const [user, setUser] = useState(null);
+  const [loginSuccess, setLoginSuccess] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError('');
     try {
       const res = await axios.post(`${AUTH_URL}/login`, { username: loginUser, password: loginPass });
-      // O backend retorna { token: ... } em caso de sucesso
       setToken(res.data.token);
       setUser({ name: loginUser });
       setLoginError('');
       localStorage.setItem('token', res.data.token);
+      setShowModal(false);
+      setLoginSuccess(true);
+      setTimeout(() => setLoginSuccess(false), 2000);
     } catch (err) {
-      // O backend retorna { error: ... } em caso de erro
       if (err.response && err.response.data && err.response.data.error) {
         setLoginError(err.response.data.error);
       } else {
@@ -315,90 +324,120 @@ function App() {
   const calcularSubtotal = (item) => item.preco * item.quantidade;
   const totalGeral = carrinho.reduce((acc, item) => acc + calcularSubtotal(item), 0);
 
+  // Exemplo de função para abrir o carrinho
+  const handleCartClick = () => setCartOpen(true);
+
   return (
-    <div className="main-container">
-      <Header user={user} handleLogout={handleLogout} setShowModal={setShowModal} />
-      {/* Main Grid */}
-      <div className="main-grid">
-        {/* Pizza Form Card */}
-        <div className="card">
-          <div className="card-header">
-            <h2 className="card-title">
-              ➕ <span>{editMode ? 'Editar Pizza' : 'Cadastrar Nova Pizza'}</span>
-            </h2>
-            <p className="card-description">
-              {editMode ? 'Modifique os dados da pizza' : 'Adicione uma nova pizza ao cardápio'}
-            </p>
+    <div className="app-container">
+      <Header
+        user={user}
+        handleLogout={handleLogout}
+        setShowModal={setShowModal}
+        onCartClick={handleCartClick}
+        cartCount={cartItems.length}
+        onMenuNav={handleMenuNav}
+        activePage={activePage}
+      />
+      {loginSuccess && (
+        <div className="login-success-toast">
+          Login realizado com sucesso!
+        </div>
+      )}
+      <main className="main-content">
+        {activePage === 'cadastro' && user && (
+          <div className="main-grid">
+            <div className="card">
+              <div className="card-header">
+                <h2 className="card-title">Cadastrar Nova Pizza</h2>
+                <p className="card-description">Adicione uma nova pizza ao cardápio</p>
+              </div>
+              <div className="card-content">
+                <PizzaForm
+                  form={form}
+                  editMode={editMode}
+                  error={error}
+                  success={success}
+                  handleChange={handleChange}
+                  handleSubmit={handleSubmit}
+                  closePizzaModal={closeModal}
+                />
+              </div>
+            </div>
           </div>
-          <div className="card-content">
-            {user ? (
-              <PizzaForm
-                form={form}
-                editMode={editMode}
-                error={error}
-                success={success}
-                handleChange={handleChange}
-                handleSubmit={handleSubmit}
-                closePizzaModal={closePizzaModal}
-              />
-            ) : (
-              <div className="empty-state">Faça login para cadastrar ou editar pizzas.</div>
-            )}
+        )}
+        {activePage === 'cadastro' && !user && (
+          <div className="main-grid">
+            <div className="card empty-state" style={{textAlign: 'center', fontSize: '1.2rem', padding: '2rem'}}>Faça login para acessar o cadastro de pizzas.</div>
+          </div>
+        )}
+        {activePage === 'home' && (
+          <div className="main-grid">
+            <div className="section-banner">
+              <span className="section-title">PIZZAS DA CASA</span>
+              <span className="section-logo"><span className="boni">BONI</span><span className="pizza">PIZZA</span></span>
+            </div>
+            {/* Pizza List Card */}
+            <PizzaList
+              pizzas={pizzas}
+              loading={loading}
+              editMode={editMode}
+              form={form}
+              user={user}
+              openPizzaModal={openModal}
+              handleDelete={handleDelete}
+              adicionarAoCarrinho={adicionarAoCarrinho}
+              deletingId={deletingId}
+            />
+          </div>
+        )}
+        {activePage === 'pedidos' && user && (
+          <div className="main-grid">
+            <div className="card">
+              <div className="card-header">
+                <h2 className="card-title">Pedidos</h2>
+                <p className="card-description">Em breve: listagem de pedidos!</p>
+              </div>
+            </div>
+          </div>
+        )}
+        {activePage === 'pedidos' && !user && (
+          <div className="main-grid">
+            <div className="card empty-state" style={{textAlign: 'center', fontSize: '1.2rem', padding: '2rem'}}>Faça login para acessar os pedidos.</div>
+          </div>
+        )}
+        {/* Custom Modal (Login/Register) */}
+        <AuthModal
+          showModal={showModal}
+          modalType={modalType}
+          setModalType={setModalType}
+          handleLogin={handleLogin}
+          handleRegister={handleRegister}
+          loginUser={loginUser}
+          setLoginUser={setLoginUser}
+          loginPass={loginPass}
+          setLoginPass={setLoginPass}
+          loginError={loginError}
+          registerUser={registerUser}
+          setRegisterUser={setRegisterUser}
+          registerPass={registerPass}
+          setRegisterPass={setRegisterPass}
+          registerError={registerError}
+          registerSuccess={registerSuccess}
+          setShowModal={setShowModal}
+        />
+      </main>
+      {/* Exemplo de modal do carrinho */}
+      {cartOpen && (
+        <div className="cart-modal-overlay" onClick={() => setCartOpen(false)}>
+          <div className="cart-modal" onClick={e => e.stopPropagation()}>
+            <button className="cart-close-btn" onClick={() => setCartOpen(false)}>&times;</button>
+            <Carrinho
+              carrinho={cartItems}
+              // ...outras props do carrinho...
+            />
           </div>
         </div>
-        {/* Formulário de Cadastro de Cliente */}
-        <ClienteForm
-          clienteNome={clienteNome}
-          clienteEmail={clienteEmail}
-          clienteTelefone={clienteTelefone}
-          clienteError={clienteError}
-          clienteSuccess={clienteSuccess}
-          setClienteNome={setClienteNome}
-          setClienteEmail={setClienteEmail}
-          setClienteTelefone={setClienteTelefone}
-          handleClienteRegister={handleClienteRegister}
-        />
-        {/* Pizza List Card */}
-        <PizzaList
-          pizzas={pizzas}
-          loading={loading}
-          editMode={editMode}
-          form={form}
-          user={user}
-          openPizzaModal={openPizzaModal}
-          handleDelete={handleDelete}
-          adicionarAoCarrinho={adicionarAoCarrinho}
-          deletingId={deletingId}
-        />
-        {/* Carrinho de Compras */}
-        <Carrinho
-          carrinho={carrinho}
-          alterarQuantidade={alterarQuantidade}
-          removerDoCarrinho={removerDoCarrinho}
-          calcularSubtotal={calcularSubtotal}
-          totalGeral={totalGeral}
-        />
-      </div>
-      {/* Custom Modal (Login/Register) */}
-      <AuthModal
-        showModal={showModal}
-        modalType={modalType}
-        setModalType={setModalType}
-        handleLogin={handleLogin}
-        handleRegister={handleRegister}
-        loginUser={loginUser}
-        setLoginUser={setLoginUser}
-        loginPass={loginPass}
-        setLoginPass={setLoginPass}
-        loginError={loginError}
-        registerUser={registerUser}
-        setRegisterUser={setRegisterUser}
-        registerPass={registerPass}
-        setRegisterPass={setRegisterPass}
-        registerError={registerError}
-        registerSuccess={registerSuccess}
-        setShowModal={setShowModal}
-      />
+      )}
     </div>
   );
 }

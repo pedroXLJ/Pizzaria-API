@@ -36,6 +36,7 @@ public class PizzaControllerTest {
     @Test
     void testCreatePizza() throws Exception {
         Pizza pizza = new Pizza();
+        pizza.setSabor("Margherita"); // Adicionando sabor válido
         Mockito.when(pizzaRepository.save(Mockito.any(Pizza.class))).thenReturn(pizza);
         mockMvc.perform(post("/pizzas")
                 .contentType(MediaType.APPLICATION_JSON)

@@ -20,6 +20,9 @@ public class ClienteController {
 
     @PostMapping
     public ResponseEntity<Cliente> createCliente(@RequestBody Cliente cliente) {
+        if (cliente.getNome() == null || cliente.getNome().isBlank()) {
+            return ResponseEntity.badRequest().body(null);
+        }
         Cliente created = clienteRepository.save(cliente);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }

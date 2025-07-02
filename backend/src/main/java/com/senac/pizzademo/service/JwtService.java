@@ -3,6 +3,7 @@ package com.senac.pizzademo.service;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -61,5 +62,12 @@ public class JwtService extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(authToken);
         }
         filterChain.doFilter(request, response);
+    }
+
+    @PostConstruct
+    public void validateSecretKey() {
+        if (SECRET_KEY == null || SECRET_KEY.isBlank()) {
+            throw new IllegalStateException("JWT secret key must be configured");
+        }
     }
 }
