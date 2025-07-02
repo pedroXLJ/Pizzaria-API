@@ -38,6 +38,7 @@ public class IngredientesControllerTest {
     @Test
     void testCreateIngrediente() throws Exception {
         Ingrediente ingrediente = new Ingrediente();
+        ingrediente.setNome("Tomate"); // Adicionando nome válido
         Mockito.when(ingredienteRepository.save(Mockito.any(Ingrediente.class))).thenReturn(ingrediente);
         mockMvc.perform(post("/ingredientes")
                 .contentType(MediaType.APPLICATION_JSON)

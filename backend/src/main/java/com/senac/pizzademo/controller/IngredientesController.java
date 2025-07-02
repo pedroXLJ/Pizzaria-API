@@ -32,6 +32,9 @@ public class IngredientesController {
 
     @PostMapping
     public ResponseEntity<Ingrediente> createIngrediente(@RequestBody Ingrediente ingrediente) {
+        if (ingrediente.getNome() == null || ingrediente.getNome().isBlank()) {
+            return ResponseEntity.badRequest().body(null);
+        }
         Ingrediente created = ingredienteRepository.save(ingrediente);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }

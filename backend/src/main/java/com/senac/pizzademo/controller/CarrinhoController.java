@@ -24,6 +24,9 @@ public class CarrinhoController {
     // Adicionar pizza ao carrinho
     @PostMapping
     public ResponseEntity<Carrinho> adicionarPizzaAoCarrinho(@RequestParam Long clienteId, @RequestParam Long pizzaId, @RequestParam int quantidade, @RequestParam BigDecimal precoUnitario) {
+        if (clienteId == null || pizzaId == null || quantidade <= 0 || precoUnitario == null || precoUnitario.compareTo(BigDecimal.ZERO) <= 0) {
+            return ResponseEntity.badRequest().body(null);
+        }
         Carrinho carrinho = carrinhoRepository.findByClienteId(clienteId);
         if (carrinho == null) {
             carrinho = new Carrinho();

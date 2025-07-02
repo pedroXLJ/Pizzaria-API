@@ -19,11 +19,17 @@ public class PedidoService {
     private final ClienteRepository clienteRepository;
     private final PizzaRepository pizzaRepository;
 
+    public static class EmptyCartException extends RuntimeException {
+        public EmptyCartException(String message) {
+            super(message);
+        }
+    }
+
     @Transactional
     public Pedido criarPedido(Long clienteId) {
         Carrinho carrinho = carrinhoRepository.findByClienteId(clienteId);
         if (carrinho == null || carrinho.getItens().isEmpty()) {
-            throw new RuntimeException("Carrinho vazio ou não encontrado");
+            throw new EmptyCartException("Carrinho vazio ou não encontrado para o cliente ID: " + clienteId);
         }
         Cliente cliente = clienteRepository.findById(clienteId).orElseThrow();
         Pedido pedido = new Pedido();

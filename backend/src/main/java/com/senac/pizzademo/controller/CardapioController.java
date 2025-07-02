@@ -32,6 +32,9 @@ public class CardapioController {
 
     @PostMapping
     public ResponseEntity<Cardapio> createCardapio(@RequestBody Cardapio cardapio) {
+        if (cardapio.getTamanho() == null || cardapio.getValor() == null) {
+            return ResponseEntity.badRequest().body(null);
+        }
         Cardapio created = cardapioRepository.save(cardapio);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }

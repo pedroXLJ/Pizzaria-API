@@ -1,7 +1,12 @@
 import './App.css';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import pizzaImg from './assets/react.svg'; // Placeholder
+import Header from './components/Header';
+import PizzaForm from './components/PizzaForm';
+import PizzaList from './components/PizzaList';
+import Carrinho from './components/Carrinho';
+import ClienteForm from './components/ClienteForm';
+import AuthModal from './components/AuthModal';
 
 const API_URL = import.meta.env.VITE_API_URL + '/pizzas';
 const AUTH_URL = import.meta.env.VITE_API_URL.replace(/\/pizzas$/, '') + '/auth';
@@ -15,6 +20,8 @@ function App() {
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState({ id: null, sabor: '', ingredientes: '' });
   const [deletingId, setDeletingId] = useState(null);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [cartItems, setCartItems] = useState([]);
 
   // Token
   const [token, setToken] = useState(() => localStorage.getItem('token') || '');
@@ -121,8 +128,13 @@ function App() {
   };
 
   // Navegação simples entre páginas (apenas UI)
-  const [activePage, setActivePage] = useState('pizza');
+  const [activePage, setActivePage] = useState('home');
   const handleNav = (page) => {
+    setActivePage(page);
+  };
+
+  // Handler para navegação do menu
+  const handleMenuNav = (page) => {
     setActivePage(page);
   };
 
@@ -131,19 +143,21 @@ function App() {
   const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState('');
   const [user, setUser] = useState(null);
+  const [loginSuccess, setLoginSuccess] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError('');
     try {
       const res = await axios.post(`${AUTH_URL}/login`, { username: loginUser, password: loginPass });
-      // O backend retorna { token: ... } em caso de sucesso
       setToken(res.data.token);
       setUser({ name: loginUser });
       setLoginError('');
       localStorage.setItem('token', res.data.token);
+      setShowModal(false);
+      setLoginSuccess(true);
+      setTimeout(() => setLoginSuccess(false), 2000);
     } catch (err) {
-      // O backend retorna { error: ... } em caso de erro
       if (err.response && err.response.data && err.response.data.error) {
         setLoginError(err.response.data.error);
       } else {
@@ -248,201 +262,179 @@ function App() {
   };
   const closeCustomModal = () => setShowModal(false);
 
+  // Cadastro Cliente
+  const [clienteNome, setClienteNome] = useState('');
+  const [clienteEmail, setClienteEmail] = useState('');
+  const [clienteTelefone, setClienteTelefone] = useState('');
+  const [clienteError, setClienteError] = useState('');
+  const [clienteSuccess, setClienteSuccess] = useState('');
+
+  const handleClienteRegister = async (e) => {
+    e.preventDefault();
+    setClienteError('');
+    setClienteSuccess('');
+    try {
+      // Ajuste a URL conforme o endpoint do backend para clientes
+      await axios.post(import.meta.env.VITE_API_URL + '/clientes', {
+        nome: clienteNome,
+        email: clienteEmail,
+        telefone: clienteTelefone
+      });
+      setClienteSuccess('Cliente cadastrado com sucesso!');
+      setClienteNome('');
+      setClienteEmail('');
+      setClienteTelefone('');
+    } catch (err) {
+      setClienteError('Erro ao cadastrar cliente');
+    }
+  };
+
+  // Carrinho de compras
+  const [carrinho, setCarrinho] = useState([]);
+
+  // Adiciona pizza ao carrinho
+  const adicionarAoCarrinho = (pizza) => {
+    setCarrinho(prev => {
+      const existe = prev.find(item => item.id === pizza.id);
+      if (existe) {
+        return prev.map(item =>
+          item.id === pizza.id ? { ...item, quantidade: item.quantidade + 1 } : item
+        );
+      } else {
+        // Supondo que pizza tenha um campo preco, se não tiver, defina um valor fixo
+        return [...prev, { ...pizza, quantidade: 1, preco: pizza.preco || 50 }];
+      }
+    });
+  };
+
+  // Remove pizza do carrinho
+  const removerDoCarrinho = (pizzaId) => {
+    setCarrinho(prev => prev.filter(item => item.id !== pizzaId));
+  };
+
+  // Altera quantidade de uma pizza no carrinho
+  const alterarQuantidade = (pizzaId, novaQtd) => {
+    if (novaQtd < 1) return;
+    setCarrinho(prev => prev.map(item =>
+      item.id === pizzaId ? { ...item, quantidade: novaQtd } : item
+    ));
+  };
+
+  // Calcula subtotal e total
+  const calcularSubtotal = (item) => item.preco * item.quantidade;
+  const totalGeral = carrinho.reduce((acc, item) => acc + calcularSubtotal(item), 0);
+
+  // Exemplo de função para abrir o carrinho
+  const handleCartClick = () => setCartOpen(true);
+
   return (
-    <div className="main-container">
-      {/* Header */}
-      <header className="header">
-        <div className="logo">
-          <span className="logo-icon">🍕</span>
-          <h1>Gerenciamento de Pizzas</h1>
+    <div className="app-container">
+      <Header
+        user={user}
+        handleLogout={handleLogout}
+        setShowModal={setShowModal}
+        onCartClick={handleCartClick}
+        cartCount={cartItems.length}
+        onMenuNav={handleMenuNav}
+        activePage={activePage}
+      />
+      {loginSuccess && (
+        <div className="login-success-toast">
+          Login realizado com sucesso!
         </div>
-        <div className="user-section">
-          {user && (
-            <div className="user-info">Olá, {user.name}!</div>
-          )}
-          {!user && (
-            <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-              👤 Login
-            </button>
-          )}
-          {user && (
-            <button className="btn btn-outline" onClick={handleLogout}>
-              Sair
-            </button>
-          )}
-        </div>
-      </header>
-
-      {/* Main Grid */}
-      <div className="main-grid">
-        {/* Pizza Form Card */}
-        <div className="card">
-          <div className="card-header">
-            <h2 className="card-title">
-              ➕ <span>{editMode ? 'Editar Pizza' : 'Cadastrar Nova Pizza'}</span>
-            </h2>
-            <p className="card-description">
-              {editMode ? 'Modifique os dados da pizza' : 'Adicione uma nova pizza ao cardápio'}
-            </p>
-          </div>
-          <div className="card-content">
-            {user ? (
-              <form onSubmit={handleSubmit}>
-                {/* Feedback do CRUD de pizza */}
-                {(error || success) && (
-                  <div style={{ marginBottom: 8 }}>
-                    {error && <div className="alert alert-danger" style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: 6, padding: 8, marginBottom: 4 }}>{error}</div>}
-                    {success && <div className="alert alert-success" style={{ background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', borderRadius: 6, padding: 8 }}>{success}</div>}
-                  </div>
-                )}
-                <div className="form-group">
-                  <label className="label">Nome da Pizza *</label>
-                  <input
-                    type="text"
-                    className="input"
-                    name="sabor"
-                    value={form.sabor}
-                    onChange={handleChange}
-                    placeholder="Ex: Margherita"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="label">Ingredientes *</label>
-                  <textarea
-                    className="textarea"
-                    name="ingredientes"
-                    value={form.ingredientes}
-                    onChange={handleChange}
-                    placeholder="Ex: Molho de tomate, mussarela, manjericão"
-                    required
-                  />
-                </div>
-                <div className="form-actions">
-                  <button type="submit" className="btn btn-primary">
-                    {editMode ? 'Atualizar Pizza' : 'Cadastrar Pizza'}
-                  </button>
-                  {editMode && (
-                    <button type="button" className="btn btn-outline" onClick={closePizzaModal}>
-                      Cancelar
-                    </button>
-                  )}
-                </div>
-              </form>
-            ) : (
-              <div className="empty-state">Faça login para cadastrar ou editar pizzas.</div>
-            )}
-          </div>
-        </div>
-
-        {/* Pizza List Card */}
-        <div>
-          <h2 style={{fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem'}}>Pizzas Cadastradas</h2>
-          <div className="pizza-list">
-            {pizzas.length === 0 && !loading && (
-              <div className="card empty-state">Nenhuma pizza cadastrada ainda</div>
-            )}
-            {pizzas.map(pizza => {
-              // Ingredientes pode vir como array de objetos, array de string, string ou null
-              let ingredientesStr = '';
-              if (Array.isArray(pizza.ingredientes)) {
-                // Se for array de objetos, mas está vazio, mostra 'Não informado'
-                if (pizza.ingredientes.length === 0) {
-                  ingredientesStr = 'Não informado';
-                } else if (typeof pizza.ingredientes[0] === 'object' && pizza.ingredientes[0] !== null && 'nome' in pizza.ingredientes[0]) {
-                  ingredientesStr = pizza.ingredientes.map(i => i.nome).filter(Boolean).join(', ');
-                } else {
-                  ingredientesStr = pizza.ingredientes.filter(Boolean).join(', ');
-                }
-              } else if (typeof pizza.ingredientes === 'string') {
-                ingredientesStr = pizza.ingredientes;
-              } else {
-                ingredientesStr = 'Não informado';
-              }
-              return (
-                <div className={`card pizza-card${editMode && form.id === pizza.id ? ' editing' : ''}`} key={pizza.id}>
-                  <div className="card-content">
-                    <div className="pizza-header">
-                      <div className="pizza-info">
-                        <h3>{pizza.sabor}</h3>
-                        <span className="badge">{ingredientesStr}</span>
-                      </div>
-                      {user && (
-                        <div className="pizza-actions">
-                          <button className="btn btn-sm btn-outline" onClick={() => openPizzaModal(pizza)}>
-                            ✏️
-                          </button>
-                          <button className="btn btn-sm btn-outline" onClick={() => handleDelete(pizza.id)} disabled={deletingId === pizza.id}>
-                            🗑️
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                    <div className="pizza-details">
-                      <div className="detail-group">
-                        <span className="detail-label">Ingredientes:</span>
-                        <span className="detail-text">{ingredientesStr}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Custom Modal (Login/Register) */}
-      {showModal && (
-        <div className="modal-overlay active">
-          <div className="modal">
-            <div className="modal-header">
-              <h3 className="modal-title">{modalType === 'login' ? 'Login' : 'Criar Conta'}</h3>
-              <p className="modal-description">
-                {modalType === 'login' ? 'Entre com suas credenciais para acessar o sistema' : 'Preencha os dados para criar sua conta'}
-              </p>
+      )}
+      <main className="main-content">
+        {activePage === 'cadastro' && user && (
+          <div className="main-grid">
+            <div className="card">
+              <div className="card-header">
+                <h2 className="card-title">Cadastrar Nova Pizza</h2>
+                <p className="card-description">Adicione uma nova pizza ao cardápio</p>
+              </div>
+              <div className="card-content">
+                <PizzaForm
+                  form={form}
+                  editMode={editMode}
+                  error={error}
+                  success={success}
+                  handleChange={handleChange}
+                  handleSubmit={handleSubmit}
+                  closePizzaModal={closeModal}
+                />
+              </div>
             </div>
-            {modalType === 'login' ? (
-              <form onSubmit={handleLogin}>
-                {/* Feedback login */}
-                {loginError && <div className="alert alert-danger" style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: 6, padding: 8, marginBottom: 8 }}>{loginError}</div>}
-                <div className="form-group">
-                  <label className="label">Usuário</label>
-                  <input type="text" className="input" value={loginUser} onChange={e => setLoginUser(e.target.value)} required />
-                </div>
-                <div className="form-group">
-                  <label className="label">Senha</label>
-                  <input type="password" className="input" value={loginPass} onChange={e => setLoginPass(e.target.value)} required />
-                </div>
-                <div className="form-actions" style={{flexDirection: 'column'}}>
-                  <button type="submit" className="btn btn-primary">Entrar</button>
-                  <button type="button" className="btn btn-outline" onClick={() => setModalType('register')}>Criar conta</button>
-                </div>
-              </form>
-            ) : (
-              <form onSubmit={handleRegister}>
-                {/* Feedback cadastro usuário */}
-                {(registerError || registerSuccess) && (
-                  <div style={{ marginBottom: 8 }}>
-                    {registerError && <div className="alert alert-danger" style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: 6, padding: 8, marginBottom: 4 }}>{registerError}</div>}
-                    {registerSuccess && <div className="alert alert-success" style={{ background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', borderRadius: 6, padding: 8 }}>{registerSuccess}</div>}
-                  </div>
-                )}
-                <div className="form-group">
-                  <label className="label">Usuário</label>
-                  <input type="text" className="input" value={registerUser} onChange={e => setRegisterUser(e.target.value)} required />
-                </div>
-                <div className="form-group">
-                  <label className="label">Senha</label>
-                  <input type="password" className="input" value={registerPass} onChange={e => setRegisterPass(e.target.value)} required />
-                </div>
-                <div className="form-actions" style={{flexDirection: 'column'}}>
-                  <button type="submit" className="btn btn-primary">Criar Conta</button>
-                  <button type="button" className="btn btn-outline" onClick={() => setModalType('login')}>Já tenho conta</button>
-                </div>
-              </form>
-            )}
-            <button className="modal-close" onClick={() => setShowModal(false)}>&times;</button>
+          </div>
+        )}
+        {activePage === 'cadastro' && !user && (
+          <div className="main-grid">
+            <div className="card empty-state" style={{textAlign: 'center', fontSize: '1.2rem', padding: '2rem'}}>Faça login para acessar o cadastro de pizzas.</div>
+          </div>
+        )}
+        {activePage === 'home' && (
+          <div className="main-grid">
+            <div className="section-banner">
+              <span className="section-title">PIZZAS DA CASA</span>
+              <span className="section-logo"><span className="boni">BONI</span><span className="pizza">PIZZA</span></span>
+            </div>
+            {/* Pizza List Card */}
+            <PizzaList
+              pizzas={pizzas}
+              loading={loading}
+              editMode={editMode}
+              form={form}
+              user={user}
+              openPizzaModal={openModal}
+              handleDelete={handleDelete}
+              adicionarAoCarrinho={adicionarAoCarrinho}
+              deletingId={deletingId}
+            />
+          </div>
+        )}
+        {activePage === 'pedidos' && user && (
+          <div className="main-grid">
+            <div className="card">
+              <div className="card-header">
+                <h2 className="card-title">Pedidos</h2>
+                <p className="card-description">Em breve: listagem de pedidos!</p>
+              </div>
+            </div>
+          </div>
+        )}
+        {activePage === 'pedidos' && !user && (
+          <div className="main-grid">
+            <div className="card empty-state" style={{textAlign: 'center', fontSize: '1.2rem', padding: '2rem'}}>Faça login para acessar os pedidos.</div>
+          </div>
+        )}
+        {/* Custom Modal (Login/Register) */}
+        <AuthModal
+          showModal={showModal}
+          modalType={modalType}
+          setModalType={setModalType}
+          handleLogin={handleLogin}
+          handleRegister={handleRegister}
+          loginUser={loginUser}
+          setLoginUser={setLoginUser}
+          loginPass={loginPass}
+          setLoginPass={setLoginPass}
+          loginError={loginError}
+          registerUser={registerUser}
+          setRegisterUser={setRegisterUser}
+          registerPass={registerPass}
+          setRegisterPass={setRegisterPass}
+          registerError={registerError}
+          registerSuccess={registerSuccess}
+          setShowModal={setShowModal}
+        />
+      </main>
+      {/* Exemplo de modal do carrinho */}
+      {cartOpen && (
+        <div className="cart-modal-overlay" onClick={() => setCartOpen(false)}>
+          <div className="cart-modal" onClick={e => e.stopPropagation()}>
+            <button className="cart-close-btn" onClick={() => setCartOpen(false)}>&times;</button>
+            <Carrinho
+              carrinho={cartItems}
+              // ...outras props do carrinho...
+            />
           </div>
         </div>
       )}

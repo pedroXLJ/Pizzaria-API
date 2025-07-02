@@ -33,6 +33,9 @@ public class PizzaController {
 
     @PostMapping
     public ResponseEntity<Pizza> createPizza(@RequestBody Pizza pizza) {
+        if (pizza.getSabor() == null || pizza.getSabor().isBlank()) {
+            return ResponseEntity.badRequest().body(null);
+        }
         if (pizza.getIngredientes() != null) {
             pizza.getIngredientes().forEach(ing -> ing.setPizza(pizza));
         }
