@@ -36,6 +36,12 @@ public class PizzaController {
         if (pizza.getSabor() == null || pizza.getSabor().isBlank()) {
             return ResponseEntity.badRequest().body(null);
         }
+        if (pizza.getTamanho() == null || pizza.getTamanho().isBlank()) {
+            return ResponseEntity.badRequest().body(null);
+        }
+        if (pizza.getPreco() == null || pizza.getPreco() <= 0) {
+            return ResponseEntity.badRequest().body(null);
+        }
         if (pizza.getIngredientes() != null) {
             pizza.getIngredientes().forEach(ing -> ing.setPizza(pizza));
         }
@@ -48,6 +54,8 @@ public class PizzaController {
         return pizzaRepository.findById(id)
             .map(pizza -> {
                 pizza.setSabor(pizzaDetails.getSabor());
+                pizza.setTamanho(pizzaDetails.getTamanho());
+                pizza.setPreco(pizzaDetails.getPreco());
                 // Remove ingredientes antigos
                 if (pizza.getIngredientes() != null) {
                     pizza.getIngredientes().clear();

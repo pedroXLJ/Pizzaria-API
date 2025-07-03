@@ -3,6 +3,8 @@ package com.senac.pizzademo.model;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 @Entity
 public class ItemCarrinho {
     @Id
@@ -14,6 +16,7 @@ public class ItemCarrinho {
     private BigDecimal precoUnitario;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JsonBackReference
     @JoinColumn(name = "carrinho_id")
     private Carrinho carrinho;
 

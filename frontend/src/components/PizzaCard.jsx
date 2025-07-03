@@ -20,7 +20,7 @@ function PizzaCard({ pizza, onAdd, onEdit, onDelete, user, deletingId }) {
   // Simulação de campos para visual: porções, preço e imagem
   const porcoes = pizza.porcoes || 2;
   const preco = pizza.preco || 49.9;
-  const imagem = pizza.imagem || '/pizza-default.jpg';
+  const imagem = pizza.imagem || 'pizza_default.png';
 
   return (
     <div className="pizza-card">

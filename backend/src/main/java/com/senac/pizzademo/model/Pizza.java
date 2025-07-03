@@ -22,6 +22,10 @@ public class Pizza {
 
     private String sabor;
 
+    private String tamanho; // Novo campo
+
+    private Double preco;   // Novo campo
+
     @OneToMany(mappedBy = "pizza", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Ingrediente> ingredientes;
 
@@ -41,6 +45,22 @@ public class Pizza {
         this.sabor = sabor;
     }
 
+    public String getTamanho() {
+        return tamanho;
+    }
+
+    public void setTamanho(String tamanho) {
+        this.tamanho = tamanho;
+    }
+
+    public Double getPreco() {
+        return preco;
+    }
+
+    public void setPreco(Double preco) {
+        this.preco = preco;
+    }
+
     public List<Ingrediente> getIngredientes() {
         return this.ingredientes;
     }
@@ -49,8 +69,10 @@ public class Pizza {
         this.ingredientes = ingredientes;
     }
 
-    public Pizza(String sabor, List<Ingrediente> ingredientes) {
+    public Pizza(String sabor, String tamanho, Double preco, List<Ingrediente> ingredientes) {
         this.sabor = sabor;
+        this.tamanho = tamanho;
+        this.preco = preco;
         this.ingredientes = ingredientes;
     }
 

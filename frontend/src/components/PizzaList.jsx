@@ -18,7 +18,11 @@ function PizzaList({ pizzas, loading, editMode, form, user, openPizzaModal, hand
             onDelete={handleDelete}
             user={user}
             deletingId={deletingId}
-          />
+          >
+            <button className="pizza-add-btn" onClick={() => adicionarAoCarrinho(pizza)}>
+              <span>+</span>
+            </button>
+          </PizzaCard>
         ))}
       </div>
     </div>

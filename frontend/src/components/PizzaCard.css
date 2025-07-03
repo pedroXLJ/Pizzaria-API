@@ -68,6 +68,8 @@
   border-radius: 12px;
   object-fit: cover;
   margin-left: auto;
+    right: 12px;
+
 }
 
 .pizza-add-btn {
@@ -82,7 +84,6 @@
   height: 44px;
   font-size: 1.7rem;
   display: flex;
-  align-items: center;
   justify-content: center;
   cursor: pointer;
   box-shadow: 0 2px 8px #0002;

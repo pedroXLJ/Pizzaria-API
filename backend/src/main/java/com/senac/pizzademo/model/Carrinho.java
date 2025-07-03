@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 @Entity
 public class Carrinho {
     @Id
@@ -15,6 +17,7 @@ public class Carrinho {
 
     private LocalDateTime criadoEm = LocalDateTime.now();
 
+    @JsonManagedReference
     @OneToMany(mappedBy = "carrinho", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<ItemCarrinho> itens = new ArrayList<>();
 

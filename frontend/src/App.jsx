@@ -18,7 +18,7 @@ function App() {
   const [success, setSuccess] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [form, setForm] = useState({ id: null, sabor: '', ingredientes: '' });
+  const [form, setForm] = useState({ id: null, sabor: '', tamanho: '', preco: '', ingredientes: '' });
   const [deletingId, setDeletingId] = useState(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [cartItems, setCartItems] = useState([]);
@@ -55,10 +55,18 @@ function App() {
 
   const openModal = (pizza = null) => {
     if (pizza) {
-      setForm({ id: pizza.id, sabor: pizza.sabor, ingredientes: pizza.ingredientes });
+      setForm({
+        id: pizza.id,
+        sabor: pizza.sabor,
+        tamanho: pizza.tamanho || '',
+        preco: pizza.preco || '',
+        ingredientes: Array.isArray(pizza.ingredientes)
+          ? pizza.ingredientes.map(i => i.nome || i).join(', ')
+          : (pizza.ingredientes || '')
+      });
       setEditMode(true);
     } else {
-      setForm({ id: null, sabor: '', ingredientes: '' });
+      setForm({ id: null, sabor: '', tamanho: '', preco: '', ingredientes: '' });
       setEditMode(false);
     }
     setModalOpen(true);
@@ -68,7 +76,7 @@ function App() {
 
   const closeModal = () => {
     setModalOpen(false);
-    setForm({ id: null, sabor: '', ingredientes: '' });
+    setForm({ id: null, sabor: '', tamanho: '', preco: '', ingredientes: '' });
     setEditMode(false);
     setError("");
     setSuccess("");
@@ -84,7 +92,6 @@ function App() {
     setError("");
     setSuccess("");
     try {
-      // Corrige: se ingredientes for vazio, envia array vazio
       let ingredientesArr = [];
       if (form.ingredientes.trim() !== "") {
         ingredientesArr = form.ingredientes
@@ -95,6 +102,8 @@ function App() {
       }
       const payload = {
         sabor: form.sabor,
+        tamanho: form.tamanho,
+        preco: parseFloat(form.preco),
         ingredientes: ingredientesArr
       };
       if (editMode) {
@@ -170,7 +179,8 @@ function App() {
   const handleLogout = () => {
     setUser(null);
     setToken('');
-    localStorage.removeItem('token');
+    setClienteId(null); // <-- Isso faz o botão reaparecer após logout
+    // ...outros resets se necessário...
   };
 
   // Cadastro
@@ -268,14 +278,14 @@ function App() {
   const [clienteTelefone, setClienteTelefone] = useState('');
   const [clienteError, setClienteError] = useState('');
   const [clienteSuccess, setClienteSuccess] = useState('');
+  const [clienteId, setClienteId] = useState(null);
 
   const handleClienteRegister = async (e) => {
     e.preventDefault();
     setClienteError('');
     setClienteSuccess('');
     try {
-      // Ajuste a URL conforme o endpoint do backend para clientes
-      await axios.post(import.meta.env.VITE_API_URL + '/clientes', {
+      const res = await axios.post(import.meta.env.VITE_API_URL + '/clientes', {
         nome: clienteNome,
         email: clienteEmail,
         telefone: clienteTelefone
@@ -284,48 +294,114 @@ function App() {
       setClienteNome('');
       setClienteEmail('');
       setClienteTelefone('');
+      setClienteId(res.data.id); // Salva o ID do cliente cadastrado
     } catch (err) {
       setClienteError('Erro ao cadastrar cliente');
     }
   };
 
-  // Carrinho de compras
-  const [carrinho, setCarrinho] = useState([]);
-
   // Adiciona pizza ao carrinho
-  const adicionarAoCarrinho = (pizza) => {
-    setCarrinho(prev => {
-      const existe = prev.find(item => item.id === pizza.id);
-      if (existe) {
-        return prev.map(item =>
-          item.id === pizza.id ? { ...item, quantidade: item.quantidade + 1 } : item
-        );
-      } else {
-        // Supondo que pizza tenha um campo preco, se não tiver, defina um valor fixo
-        return [...prev, { ...pizza, quantidade: 1, preco: pizza.preco || 50 }];
-      }
-    });
+  const adicionarAoCarrinho = async (pizza) => {
+    if (!clienteId) {
+      alert('Cadastre-se como cliente para adicionar ao carrinho!');
+      return;
+    }
+    try {
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/carrinho`,
+        null,
+        {
+          params: {
+            clienteId: clienteId,
+            pizzaId: pizza.id,
+            quantidade: 1,
+            precoUnitario: pizza.preco
+          }
+        }
+      );
+      await fetchCarrinho(); // Atualiza o carrinho local após adicionar
+      alert('Pizza adicionada ao carrinho!');
+    } catch (err) {
+      alert('Erro ao adicionar pizza ao carrinho');
+    }
   };
 
-  // Remove pizza do carrinho
-  const removerDoCarrinho = (pizzaId) => {
-    setCarrinho(prev => prev.filter(item => item.id !== pizzaId));
+  const alterarQuantidade = (id, quantidade) => {
+    setCartItems(prev =>
+      prev.map(item =>
+        item.id === id ? { ...item, quantidade } : item
+      )
+    );
   };
 
-  // Altera quantidade de uma pizza no carrinho
-  const alterarQuantidade = (pizzaId, novaQtd) => {
-    if (novaQtd < 1) return;
-    setCarrinho(prev => prev.map(item =>
-      item.id === pizzaId ? { ...item, quantidade: novaQtd } : item
-    ));
+  const removerDoCarrinho = (id) => {
+    setCartItems(prev => prev.filter(item => item.id !== id));
   };
 
-  // Calcula subtotal e total
   const calcularSubtotal = (item) => item.preco * item.quantidade;
-  const totalGeral = carrinho.reduce((acc, item) => acc + calcularSubtotal(item), 0);
+  const totalGeral = cartItems.reduce((acc, item) => acc + calcularSubtotal(item), 0);
 
   // Exemplo de função para abrir o carrinho
   const handleCartClick = () => setCartOpen(true);
+
+  const onFinalizarPedido = async () => {
+    if (!clienteId) {
+      alert('Cadastre-se como cliente para finalizar o pedido!');
+      return;
+    }
+    try {
+      await axios.post(`${import.meta.env.VITE_API_URL}/pedidos?clienteId=${clienteId}`);
+      alert('Pedido realizado com sucesso!');
+      setCartItems([]);
+    } catch (err) {
+      alert('Erro ao finalizar pedido');
+    }
+  };
+
+  const fetchCarrinho = async () => {
+    if (!clienteId) return;
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/carrinho`, {
+        params: { clienteId }
+      });
+      console.log('CARRINHO API RESPONSE', res.data); // <-- Adicione este log
+      const itens = (res.data || []).map(item => {
+        const pizza = pizzas.find(p => p.id === item.pizzaId);
+        return {
+          id: item.pizzaId,
+          sabor: pizza ? pizza.sabor : `Pizza #${item.pizzaId}`,
+          preco: item.precoUnitario,
+          quantidade: item.quantidade
+        };
+      });
+      setCartItems(itens);
+    } catch (err) {
+      setCartItems([]);
+    }
+  };
+
+  const [pedidos, setPedidos] = useState([]);
+  const [pedidosLoading, setPedidosLoading] = useState(false);
+  const [pedidosError, setPedidosError] = useState('');
+
+  const fetchPedidos = async () => {
+    setPedidosLoading(true);
+    setPedidosError('');
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/pedidos`);
+      setPedidos(res.data);
+    } catch (err) {
+      setPedidosError('Erro ao buscar pedidos');
+    }
+    setPedidosLoading(false);
+  };
+
+  useEffect(() => {
+    if (activePage === 'pedidos' && user) {
+      fetchPedidos();
+    }
+    // eslint-disable-next-line
+  }, [activePage, user]);
 
   return (
     <div className="app-container">
@@ -363,11 +439,26 @@ function App() {
                 />
               </div>
             </div>
+            <div style={{marginTop: '2rem'}}>
+              <PizzaList
+                pizzas={pizzas}
+                loading={loading}
+                editMode={editMode}
+                form={form}
+                user={user}
+                openPizzaModal={openPizzaModal}
+                handleDelete={handleDelete}
+                adicionarAoCarrinho={adicionarAoCarrinho}
+                deletingId={deletingId}
+              />
+            </div>
           </div>
         )}
         {activePage === 'cadastro' && !user && (
           <div className="main-grid">
-            <div className="card empty-state" style={{textAlign: 'center', fontSize: '1.2rem', padding: '2rem'}}>Faça login para acessar o cadastro de pizzas.</div>
+            <div className="card empty-state" style={{textAlign: 'center', fontSize: '1.2rem', padding: '2rem'}}>
+              Faça login para acessar o cadastro de pizzas.
+            </div>
           </div>
         )}
         {activePage === 'home' && (
@@ -376,18 +467,20 @@ function App() {
               <span className="section-title">PIZZAS DA CASA</span>
               <span className="section-logo"><span className="boni">BONI</span><span className="pizza">PIZZA</span></span>
             </div>
-            {/* Pizza List Card */}
-            <PizzaList
-              pizzas={pizzas}
-              loading={loading}
-              editMode={editMode}
-              form={form}
-              user={user}
-              openPizzaModal={openModal}
-              handleDelete={handleDelete}
-              adicionarAoCarrinho={adicionarAoCarrinho}
-              deletingId={deletingId}
-            />
+            {/* Pizza List Grid ocupa toda a largura */}
+            <div className="pizza-list-grid-wrapper">
+              <PizzaList
+                pizzas={pizzas}
+                loading={loading}
+                editMode={false}
+                form={form}
+                user={null}
+                openPizzaModal={() => {}}
+                handleDelete={null}
+                adicionarAoCarrinho={adicionarAoCarrinho}
+                deletingId={null}
+              />
+            </div>
           </div>
         )}
         {activePage === 'pedidos' && user && (
@@ -395,14 +488,68 @@ function App() {
             <div className="card">
               <div className="card-header">
                 <h2 className="card-title">Pedidos</h2>
-                <p className="card-description">Em breve: listagem de pedidos!</p>
+                <p className="card-description">Veja seus pedidos realizados</p>
+              </div>
+              <div className="card-content">
+                {pedidosLoading && <div>Carregando pedidos...</div>}
+                {pedidosError && <div style={{color: 'red'}}>{pedidosError}</div>}
+                {!pedidosLoading && pedidos.length === 0 && <div>Nenhum pedido encontrado.</div>}
+                {!pedidosLoading && pedidos.length > 0 && (
+                  <table className="pedidos-table" style={{width: '100%', marginTop: 16}}>
+                    <thead>
+                      <tr>
+                        <th>Nome</th>
+                        <th>Email</th>
+                        <th>Data</th>
+                        <th>Preço Total</th>
+                        <th>Itens</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pedidos.map(pedido => (
+                        <tr key={pedido.id}>
+                          <td>{pedido.cliente?.nome || '-'}</td>
+                          <td>{pedido.cliente?.email || '-'}</td>
+                          <td>{pedido.dataPedido ? new Date(pedido.dataPedido).toLocaleString() : '-'}</td>
+                          <td>R$ {pedido.precoTotal?.toFixed(2)}</td>
+                          <td>
+                            <ul style={{margin: 0, paddingLeft: 16}}>
+                              {pedido.itens?.map(item => (
+                                <li key={item.id}>
+                                  {item.pizza?.sabor || `Pizza #${item.pizzaId}`} - {item.quantidade}x
+                                </li>
+                              ))}
+                            </ul>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </div>
           </div>
         )}
         {activePage === 'pedidos' && !user && (
           <div className="main-grid">
-            <div className="card empty-state" style={{textAlign: 'center', fontSize: '1.2rem', padding: '2rem'}}>Faça login para acessar os pedidos.</div>
+            <div className="card empty-state" style={{textAlign: 'center', fontSize: '1.2rem', padding: '2rem'}}>
+              Faça login para acessar os pedidos.
+            </div>
+          </div>
+        )}
+        {activePage === 'cadastroCliente' && (
+          <div className="main-grid">
+            <ClienteForm
+              clienteNome={clienteNome}
+              clienteEmail={clienteEmail}
+              clienteTelefone={clienteTelefone}
+              clienteError={clienteError}
+              clienteSuccess={clienteSuccess}
+              setClienteNome={setClienteNome}
+              setClienteEmail={setClienteEmail}
+              setClienteTelefone={setClienteTelefone}
+              handleClienteRegister={handleClienteRegister}
+            />
           </div>
         )}
         {/* Custom Modal (Login/Register) */}
@@ -433,7 +580,11 @@ function App() {
             <button className="cart-close-btn" onClick={() => setCartOpen(false)}>&times;</button>
             <Carrinho
               carrinho={cartItems}
-              // ...outras props do carrinho...
+              alterarQuantidade={alterarQuantidade}
+              removerDoCarrinho={removerDoCarrinho}
+              calcularSubtotal={calcularSubtotal}
+              totalGeral={totalGeral}
+              onFinalizarPedido={onFinalizarPedido}
             />
           </div>
         </div>

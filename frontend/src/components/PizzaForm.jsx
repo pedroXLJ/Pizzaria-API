@@ -23,6 +23,32 @@ function PizzaForm({ form, editMode, error, success, handleChange, handleSubmit,
         />
       </div>
       <div className="form-group">
+        <label className="label">Tamanho *</label>
+        <input
+          type="text"
+          className="input"
+          name="tamanho"
+          value={form.tamanho || ''}
+          onChange={handleChange}
+          placeholder="Ex: Grande, Média, Pequena"
+          required
+        />
+      </div>
+      <div className="form-group">
+        <label className="label">Preço *</label>
+        <input
+          type="number"
+          className="input"
+          name="preco"
+          value={form.preco || ''}
+          onChange={handleChange}
+          placeholder="Ex: 59.90"
+          min="0"
+          step="0.01"
+          required
+        />
+      </div>
+      <div className="form-group">
         <label className="label">Ingredientes *</label>
         <textarea
           className="textarea"

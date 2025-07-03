@@ -1,6 +1,6 @@
 import React from 'react';
 
-function Carrinho({ carrinho = [], alterarQuantidade, removerDoCarrinho, calcularSubtotal, totalGeral }) {
+function Carrinho({ carrinho = [], alterarQuantidade, removerDoCarrinho, calcularSubtotal, totalGeral, onFinalizarPedido }) {
   return (
     <div className="card" style={{minWidth: 320, maxWidth: 400}}>
       <div className="card-header">
@@ -51,6 +51,15 @@ function Carrinho({ carrinho = [], alterarQuantidade, removerDoCarrinho, calcula
               </tr>
             </tfoot>
           </table>
+        )}
+        {carrinho.length > 0 && (
+          <button
+            className="btn btn-primary"
+            style={{ width: '100%', marginTop: 16 }}
+            onClick={onFinalizarPedido}
+          >
+            Finalizar Pedido
+          </button>
         )}
       </div>
     </div>

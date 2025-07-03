@@ -1,7 +1,7 @@
 import React from 'react';
 import './Header.css';
 
-function Header({ user, handleLogout, setShowModal, onCartClick, cartCount, onMenuNav, activePage }) {
+function Header({ user, handleLogout, setShowModal, onCartClick, cartCount, onMenuNav, activePage, clienteId }) {
   return (
     <>
       <header className="custom-header">
@@ -18,9 +18,16 @@ function Header({ user, handleLogout, setShowModal, onCartClick, cartCount, onMe
             </span>
           )}
           {!user ? (
-            <button className="header-login-btn" onClick={() => setShowModal(true)}>
-              <span className="user-icon">👤</span> Entre ou Cadastre-se
-            </button>
+            <>
+              <button className="header-login-btn" onClick={() => setShowModal(true)}>
+                <span className="user-icon">👤</span> Login como admin
+              </button>
+              {!clienteId && (
+                <button className="header-login-btn" onClick={() => onMenuNav && onMenuNav('cadastroCliente')} style={{ marginLeft: 8 }}>
+                  <span className="user-icon">📝</span> Cadastro de Cliente
+                </button>
+              )}
+            </>
           ) : (
             <button className="header-login-btn" onClick={handleLogout}>
               Sair
